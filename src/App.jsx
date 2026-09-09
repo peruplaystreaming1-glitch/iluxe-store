@@ -17,7 +17,7 @@ const products = [
 export default function App() {
   const handleOrder = (product) => {
     const text = `Hola I-Store Luxe, deseo adquirir ${product.name} por ${product.price}. Medios de pago: Yape / Dale.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://wa.me/51906246375?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (
