@@ -6,12 +6,12 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const products = [
-  { id: 1, name: "Netflix Premium (Ultra HD)", price: "S/ 12.00", icon: "🎬", badge: "Más Vendido" },
-  { id: 2, name: "Disney+ Estándar / Premium", price: "S/ 10.00", icon: "✨", badge: "Popular" },
-  { id: 3, name: "Max (HBO) Platino", price: "S/ 9.00", icon: "🍿", badge: "HD / 4K" },
-  { id: 4, name: "Spotify Premium Individual", price: "S/ 8.00", icon: "🎵", badge: "Música" },
-  { id: 5, name: "YouTube Premium", price: "S/ 9.00", icon: "▶️", badge: "Sin Anuncios" },
-  { id: 6, name: "Prime Video", price: "S/ 8.00", icon: "📦", badge: "Estable" }
+  { id: 1, name: "Netflix Premium (Ultra HD)", price: "S/ 15.00", icon: "🎬", badge: "Más Vendido" },
+  { id: 2, name: "Disney+  Premium", price: "S/ 15.00", icon: "✨", badge: "Popular" },
+  { id: 3, name: "Max (HBO) Platino", price: "S/ 10.00", icon: "🍿", badge: "HD / 4K" },
+  { id: 4, name: "Spotify Premium Individual", price: "S/ 12.00", icon: "🎵", badge: "Música" },
+  { id: 5, name: "YouTube Premium", price: "S/ 10.00", icon: "▶️", badge: "Sin Anuncios" },
+  { id: 6, name: "Prime Video", price: "S/ 10.00", icon: "📦", badge: "Estable" }
 ];
 
 export default function App() {
