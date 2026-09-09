@@ -71,7 +71,7 @@ export default function App() {
             <p className="text-amber-400 font-black text-2xl mt-1">{selectedProduct.price}</p>
 
             <div className="my-5 bg-white p-3 rounded-xl inline-block shadow-md">
-              <img
+              <imghttps://i.postimg.cc/05f0pV8j/qr-png.jpg
                 src="/qr.jpeg"
                 alt="QR Pago Yape / Dale"
                 className="w-44 h-44 object-contain mx-auto"
