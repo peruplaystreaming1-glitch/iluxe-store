@@ -1,5 +1,5 @@
 import React, { useState } from 'react'; 
-import qrPago from '../qr.jpeg';
+
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -72,6 +72,10 @@ export default function App() {
 
             <div className="my-5 bg-white p-3 rounded-xl inline-block shadow-md">
               <img
+  src="/qr.jpeg"
+  alt="QR Pago Yape y Dale"
+  className="w-44 h-44 object-contain mx-auto"
+/>
                 src={qrPago}
                 alt="QR Pago"
                 className="w-40 h-40 object-contain mx-auto"
