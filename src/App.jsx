@@ -72,7 +72,7 @@ export default function App() {
 
             <div className="my-5 bg-white p-3 rounded-xl inline-block shadow-md">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=51906246375`}
+                src="/qr.jpeg"
                 alt="QR Pago"
                 className="w-40 h-40 object-contain mx-auto"
               />
