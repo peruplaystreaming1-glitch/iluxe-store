@@ -5,6 +5,34 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Definición de Categorías Oficiales
+const CATEGORIES = [
+  {
+    id: 'streaming-popular',
+    name: 'STREAMING POPULAR',
+    icon: '🌟',
+    platforms: ['NETFLIX PREMIUM', 'DISNEY+', 'AMAZON PRIME', 'HBO MAX', 'PARAMOUNT+']
+  },
+  {
+    id: 'tv-entretenimiento',
+    name: 'ENTRETENIMIENTO Y TV',
+    icon: '📺',
+    platforms: ['DGO', 'MOVISTAR', 'VIX PREMIUM']
+  },
+  {
+    id: 'anime-series',
+    name: 'ANIME Y SERIES',
+    icon: '🎌',
+    platforms: ['CRUNCHYROLL', 'VIKI RAKUTEN', 'KOCOWA']
+  },
+  {
+    id: 'musica-premium',
+    name: 'MÚSICA Y CONTENIDO PREMIUM',
+    icon: '🎧',
+    platforms: ['SPOTIFY PREMIUM', 'YOUTUBE PREMIUM', 'UNIVERSAL+', 'APPLE TV+']
+  }
+];
+
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
@@ -13,20 +41,14 @@ export default function App() {
   const [settings, setSettings] = useState({
     business_name: 'I-LUXE STORE',
     subtitle: 'STREAMING PERÚ',
-    whatsapp: '51906246375',
+    whatsapp: '906246375',
     facebook: '',
     instagram: '',
     tiktok: '',
     telegram: ''
   });
   const [loading, setLoading] = useState(true);
-
-  // Modal de Compra Directa
-  const [checkoutItem, setCheckoutItem] = useState(null);
-  const [clientName, setClientName] = useState('');
-  const [clientWhatsapp, setClientWhatsapp] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Estados Admin
   const [user, setUser] = useState(null);
@@ -36,12 +58,12 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  // Pestañas Admin
+  // Panel Tabs: 'dashboard' | 'orders' | 'clients' | 'products' | 'platforms' | 'settings'
   const [adminTab, setAdminTab] = useState('dashboard');
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
 
-  // Formularios
+  // Formulario Producto
   const [prodForm, setProdForm] = useState({
     id: null,
     platform_id: '',
@@ -54,6 +76,7 @@ export default function App() {
   });
   const [isEditingProd, setIsEditingProd] = useState(false);
 
+  // Formulario Plataforma
   const [platForm, setPlatForm] = useState({
     id: null,
     name: '',
@@ -64,9 +87,11 @@ export default function App() {
   const [isEditingPlat, setIsEditingPlat] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Formulario Ajustes
   const [settingsForm, setSettingsForm] = useState({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Enrutamiento SPA
   const navigate = (path) => {
     window.history.pushState({}, '', path);
     setCurrentPath(path);
@@ -79,6 +104,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Sesión Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -93,6 +119,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Cargar Catálogo desde Supabase
   const loadData = async () => {
     setLoading(true);
     try {
@@ -145,6 +172,7 @@ export default function App() {
     loadData();
   }, [user]);
 
+  // Login de Supabase
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -169,6 +197,7 @@ export default function App() {
     navigate('/');
   };
 
+  // Subir imagen a Supabase Storage
   const handleFileUpload = async (e, callback) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -187,69 +216,44 @@ export default function App() {
       const { data } = supabase.storage.from('images').getPublicUrl(fileName);
       callback(data.publicUrl);
     } catch (err) {
-      alert('Error al subir imagen: ' + (err.message || 'Error en Supabase Storage'));
+      alert('Error al subir imagen: ' + (err.message || 'Verifica el bucket images.'));
     } finally {
       setUploadingImage(false);
     }
   };
 
-  const handleFinalizePurchase = async () => {
-    if (!checkoutItem) return;
-    if (!clientName.trim() || !clientWhatsapp.trim()) {
-      alert('Por favor indica tu nombre y tu número de WhatsApp.');
-      return;
+  // Botón Comprar por WhatsApp (Formato Exacto Solicitado)
+  const handleBuyWhatsApp = (platformName, serviceType, price) => {
+    let cleanWa = (settings.whatsapp || '906246375').replace(/[^0-9]/g, '');
+    if (!cleanWa.startsWith('51') && cleanWa.length === 9) {
+      cleanWa = '51' + cleanWa;
     }
 
-    setIsSubmittingOrder(true);
-    try {
-      const { data: newClient } = await supabase.from('clients').insert([{
-        full_name: clientName.trim(),
-        whatsapp: clientWhatsapp.trim(),
-        email: clientEmail.trim(),
-        status: 'Activo'
-      }]).select().single();
+    const message = `Hola I-LUXE STORE 👋
 
-      await supabase.from('orders').insert([{
-        client_id: newClient?.id || null,
-        client_name: clientName.trim(),
-        client_contact: clientWhatsapp.trim(),
-        platform_name: checkoutItem.platformName,
-        service_type: checkoutItem.serviceType,
-        price: checkoutItem.price,
-        payment_status: 'Pendiente',
-        service_status: 'Activo',
-        notes: `Comprado directo. Correo: ${clientEmail.trim() || 'No brindado'}`
-      }]);
+Estoy interesado en:
 
-      const cleanWa = (settings.whatsapp || '51906246375').replace(/[^0-9]/g, '');
-      const msg = `¡Hola I-LUXE STORE! 👋 Acabo de realizar mi compra directa:
+Plataforma: ${platformName}
+Servicio: ${serviceType}
+Precio: S/ ${Number(price).toFixed(2)}
 
-📺 Plataforma: ${checkoutItem.platformName}
-📦 Modalidad: ${checkoutItem.serviceType}
-💰 Monto a pagar: S/ ${Number(checkoutItem.price).toFixed(2)}
-💳 Método: Yape / Dale (906 246 375)
-👤 Titular: ${clientName.trim()}
-📱 WhatsApp: ${clientWhatsapp.trim()}
-📧 Correo: ${clientEmail.trim() || 'Entrega por este WhatsApp'}
+Quiero más información.`;
 
-Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
-
-      window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`, '_blank');
-
-      setCheckoutItem(null);
-      setClientName('');
-      setClientWhatsapp('');
-      setClientEmail('');
-    } catch (err) {
-      console.error(err);
-      const cleanWa = (settings.whatsapp || '51906246375').replace(/[^0-9]/g, '');
-      window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent('Hola I-LUXE STORE, quiero mi cuenta de ' + checkoutItem.platformName)}`, '_blank');
-      setCheckoutItem(null);
-    } finally {
-      setIsSubmittingOrder(false);
-    }
+    window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  // Botón Consulta General / No encuentras tu servicio
+  const handleCustomInquiryWhatsApp = () => {
+    let cleanWa = (settings.whatsapp || '906246375').replace(/[^0-9]/g, '');
+    if (!cleanWa.startsWith('51') && cleanWa.length === 9) {
+      cleanWa = '51' + cleanWa;
+    }
+
+    const message = `Hola I-LUXE STORE 👋 No encuentro la plataforma o servicio que estoy buscando, ¿me podrían ayudar con información y disponibilidad?`;
+    window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  // CRUD Productos
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     const plat = platforms.find(p => p.id === prodForm.platform_id);
@@ -303,6 +307,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
     loadData();
   };
 
+  // CRUD Plataformas
   const handleSavePlatform = async (e) => {
     e.preventDefault();
     const payload = {
@@ -337,7 +342,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
   };
 
   const handleDeletePlatform = async (id) => {
-    if (window.confirm('¿Deseas eliminar esta plataforma y sus productos?')) {
+    if (window.confirm('¿Deseas eliminar esta plataforma y todas sus modalidades asociadas?')) {
       await supabase.from('platforms').delete().eq('id', id);
       loadData();
     }
@@ -375,12 +380,19 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
+  // Plataformas y Productos activos
   const allProducts = platforms.flatMap((p) => p.products || []);
   const activeProducts = allProducts.filter((p) => p.active);
   const activePlatforms = platforms.filter((p) => p.active);
-  const cleanWhatsapp = (settings.whatsapp || '51906246375').replace(/[^0-9]/g, '');
 
-  // VISTA PANEL ADMIN
+  let officialWaNumber = (settings.whatsapp || '906246375').replace(/[^0-9]/g, '');
+  if (!officialWaNumber.startsWith('51') && officialWaNumber.length === 9) {
+    officialWaNumber = '51' + officialWaNumber;
+  }
+
+  // ==========================================
+  // VISTA 1: PANEL ADMINISTRATIVO PRIVADO (/admin)
+  // ==========================================
   if (currentPath.startsWith('/admin')) {
     if (authChecking) {
       return (
@@ -462,7 +474,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
     }
 
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-neutral-200 flex flex-col md:flex-row">
+      <div className="min-h-screen bg-[#0a0a0a] text-neutral-200 flex flex-col md:flex-row font-sans">
         <aside className="w-full md:w-64 bg-[#121212] border-b md:border-b-0 md:border-r border-neutral-800 p-5 flex flex-col justify-between">
           <div>
             <div className="pb-4 border-b border-neutral-800 mb-4">
@@ -516,7 +528,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-black text-white">PANEL DE CONTROL</h1>
-                <p className="text-xs text-neutral-400 mt-1">Monitorea pedidos, clientes y servicios activos.</p>
+                <p className="text-xs text-neutral-400 mt-1">Monitorea tus pedidos, clientes y servicios activos.</p>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -544,7 +556,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-black text-white">GESTIÓN DE PEDIDOS</h1>
-                <p className="text-xs text-neutral-400 mt-1">Control de pagos y estados de entrega.</p>
+                <p className="text-xs text-neutral-400 mt-1">Control de pagos y cuentas activas.</p>
               </div>
 
               <div className="bg-[#121212] border border-neutral-800 rounded-2xl overflow-x-auto">
@@ -618,7 +630,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-black text-white">BASE DE CLIENTES</h1>
-                <p className="text-xs text-neutral-400 mt-1">Clientes registrados mediante compra directa.</p>
+                <p className="text-xs text-neutral-400 mt-1">Directorio de compradores registrados.</p>
               </div>
 
               <div className="bg-[#121212] border border-neutral-800 rounded-2xl overflow-x-auto">
@@ -628,7 +640,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
                       <th className="p-3.5">Nombre Completo</th>
                       <th className="p-3.5">WhatsApp</th>
                       <th className="p-3.5">Correo</th>
-                      <th className="p-3.5">Fecha</th>
+                      <th className="p-3.5">Registro</th>
                       <th className="p-3.5">Estado</th>
                     </tr>
                   </thead>
@@ -665,8 +677,8 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
           {adminTab === 'products' && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-black text-white">SERVICIOS Y MODALIDADES</h1>
-                <p className="text-xs text-neutral-400 mt-1">Configura precios en Soles (S/), perfiles y dispositivos.</p>
+                <h1 className="text-2xl font-black text-white">SERVICIOS Y PRECIOS</h1>
+                <p className="text-xs text-neutral-400 mt-1">Edita precios en Soles, perfiles y modalidades.</p>
               </div>
 
               <form onSubmit={handleSaveProduct} className="bg-[#121212] border border-neutral-800 rounded-2xl p-5 space-y-4">
@@ -691,7 +703,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-neutral-400 mb-1 uppercase">Modalidad</label>
+                    <label className="block text-[11px] font-semibold text-neutral-400 mb-1 uppercase">Tipo de servicio</label>
                     <input
                       type="text"
                       required
@@ -739,7 +751,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-neutral-400 mb-1 uppercase">Descripción</label>
+                  <label className="block text-[11px] font-semibold text-neutral-400 mb-1 uppercase">Descripción corta</label>
                   <input
                     type="text"
                     value={prodForm.description}
@@ -841,7 +853,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
                     <input
                       type="text"
                       required
-                      placeholder="Ej: DISNEY+, HBO MAX"
+                      placeholder="Ej: NETFLIX, DISNEY+"
                       value={platForm.name}
                       onChange={(e) => setPlatForm({ ...platForm, name: e.target.value })}
                       className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none uppercase"
@@ -953,7 +965,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
 
               {saveSuccess && (
                 <div className="bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs p-3 rounded-xl">
-                  ✓ Configuración actualizada.
+                  ✓ Configuración actualizada en la página web.
                 </div>
               )}
 
@@ -989,6 +1001,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
                     onChange={(e) => setSettingsForm({ ...settingsForm, whatsapp: e.target.value })}
                     className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
                   />
+                  <p className="text-[10px] text-neutral-500 mt-1">Número actual: 906246375</p>
                 </div>
 
                 <div className="pt-3 border-t border-neutral-800 space-y-3">
@@ -1049,7 +1062,9 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
     );
   }
 
-  // VISTA PÁGINA PÚBLICA
+  // ==========================================
+  // VISTA 2: PÁGINA PÚBLICA RENOVADA
+  // ==========================================
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-neutral-100 font-sans selection:bg-amber-400 selection:text-black">
       {/* 1. HEADER */}
@@ -1073,7 +1088,7 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             </a>
 
             <a
-              href={`https://wa.me/${cleanWhatsapp}`}
+              href={`https://wa.me/${officialWaNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-4 py-2 rounded-xl text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition active:scale-95"
@@ -1084,16 +1099,18 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
         </div>
       </header>
 
-      {/* 2. PORTADA */}
-      <section className="py-14 sm:py-24 px-4 text-center border-b border-neutral-900 relative">
+      {/* 2. PORTADA PRINCIPAL */}
+      <section className="py-14 sm:py-20 px-4 text-center border-b border-neutral-900 relative">
         <div className="max-w-3xl mx-auto">
-          <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3.5 py-1 rounded-full mb-6">
-            ENTRETENIMIENTO DIGITAL
+          <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3.5 py-1 rounded-full mb-5">
+            STREAMING OFICIAL EN PERÚ
           </span>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.15] mb-5">
+          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-[1.15] mb-4">
             Tu entretenimiento, <br />
-            <span className="text-neutral-300 font-medium">fácil y rápido.</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">
+              fácil y rápido.
+            </span>
           </h1>
 
           <p className="text-sm sm:text-base text-neutral-400 max-w-xl mx-auto mb-8 leading-relaxed">
@@ -1109,121 +1126,179 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             </a>
 
             <a
-              href="#catalogo"
+              href={`https://wa.me/${officialWaNumber}?text=${encodeURIComponent('Hola I-LUXE STORE 👋 Deseo realizar una consulta para adquirir un servicio de streaming.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-black font-black px-6 py-3.5 rounded-xl text-xs tracking-wider uppercase transition shadow-lg shadow-amber-400/10 active:scale-95"
             >
-              COMPRAR DIRECTO
+              COMPRAR POR WHATSAPP
             </a>
           </div>
         </div>
       </section>
 
-      {/* 3. CATÁLOGO CON LOS 15 SERVICIOS */}
-      <section id="catalogo" className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-        <div className="text-center mb-12">
-          <span className="text-[11px] font-bold tracking-[0.2em] text-amber-400 uppercase">
-            Precios en soles · Compra directa
+      {/* 3. MEJORA 1: ENCABEZADO DEL CATÁLOGO */}
+      <section id="catalogo" className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-8">
+        <div className="text-center max-w-2xl mx-auto">
+          <span className="text-[11px] font-extrabold tracking-[0.25em] text-amber-400 uppercase bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
+            CATÁLOGO OFICIAL · PRECIOS EN SOLES (S/)
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-1">
-            CATÁLOGO OFICIAL
+          <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight mt-3">
+            TU ENTRETENIMIENTO FAVORITO
           </h2>
+          <p className="text-sm sm:text-base text-neutral-400 mt-2">
+            Elige tu plataforma favorita y disfruta del mejor entretenimiento.
+          </p>
         </div>
 
+        {/* MEJORA 2: FILTRO RÁPIDO DE CATEGORÍAS */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mt-8 mb-12">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+              selectedCategory === 'all'
+                ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20'
+                : 'bg-[#121212] text-neutral-400 hover:text-white border border-neutral-800'
+            }`}
+          >
+            Todos
+          </button>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-1.5 ${
+                selectedCategory === cat.id
+                  ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20'
+                  : 'bg-[#121212] text-neutral-400 hover:text-white border border-neutral-800'
+              }`}
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* 4. CARGA O LISTADO DE PRODUCTOS POR CATEGORÍA */}
         {loading ? (
           <div className="text-center py-20 text-neutral-500 text-sm">
             <p className="animate-pulse">Cargando catálogo oficial...</p>
           </div>
         ) : activePlatforms.length === 0 ? (
           <div className="text-center py-16 border border-dashed border-neutral-800 rounded-2xl bg-[#121212]">
-            <p className="text-sm text-neutral-400">No hay plataformas activas disponibles por el momento.</p>
+            <p className="text-sm text-neutral-400">No hay servicios disponibles temporalmente.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activePlatforms.map((platform) => {
-              const activeProds = (platform.products || []).filter((p) => p.active);
+          <div className="space-y-16">
+            {CATEGORIES.filter(cat => selectedCategory === 'all' || selectedCategory === cat.id).map((category) => {
+              // Obtener plataformas pertenecientes a esta categoría
+              const catPlatforms = activePlatforms.filter(p => category.platforms.includes(p.name));
+              if (catPlatforms.length === 0) return null;
 
               return (
-                <div
-                  key={platform.id}
-                  className="bg-[#121212] border border-neutral-800/90 hover:border-neutral-700 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all"
-                >
-                  <div>
-                    <div className="flex items-center space-x-4 pb-4 border-b border-neutral-800">
-                      <div className="w-14 h-14 rounded-xl bg-black border border-neutral-800 p-2 flex items-center justify-center flex-shrink-0">
-                        <img
-                          src={platform.image_url || 'https://img.icons8.com/color/512/television.png'}
-                          alt={platform.name}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = 'https://img.icons8.com/color/512/television.png';
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] tracking-widest text-amber-400 font-bold uppercase">Streaming</span>
-                        <h3 className="text-2xl font-black text-white tracking-wide uppercase leading-none mt-1">
-                          {platform.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 space-y-4">
-                      {activeProds.length > 0 ? (
-                        activeProds.map((prod) => (
-                          <div
-                            key={prod.id}
-                            className="bg-[#181818] border border-neutral-800 rounded-xl p-4 transition"
-                          >
-                            <div className="flex justify-between items-baseline mb-1">
-                              <h4 className="font-bold text-sm text-neutral-100 uppercase tracking-wide">
-                                {prod.service_type}
-                              </h4>
-                              <span className="text-xl font-black text-amber-400 font-mono">
-                                S/ {Number(prod.price).toFixed(2)}
-                              </span>
-                            </div>
-
-                            <div className="flex gap-2 my-2">
-                              {prod.profiles_count > 1 && (
-                                <span className="text-[10px] bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded text-neutral-300 font-semibold">
-                                  {prod.profiles_count} perfiles
-                                </span>
-                              )}
-                              <span className="text-[10px] bg-neutral-900 border border-neutral-800 px-2 py-0.5 rounded text-neutral-300 font-semibold">
-                                {prod.devices_count} dispositivo(s)
-                              </span>
-                            </div>
-
-                            <p className="text-xs text-neutral-400 mb-3">
-                              {prod.description}
-                            </p>
-
-                            <button
-                              onClick={() => setCheckoutItem({
-                                platformName: platform.name,
-                                serviceType: prod.service_type,
-                                price: prod.price,
-                                productId: prod.id
-                              })}
-                              className="w-full bg-amber-400 hover:bg-amber-300 text-black font-extrabold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-400/10 cursor-pointer"
-                            >
-                              <span>⚡ COMPRAR DIRECTO</span>
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-neutral-500 italic py-4 text-center">
-                          Modalidades en preparación para esta plataforma.
-                        </p>
-                      )}
-                    </div>
+                <div key={category.id} className="space-y-6">
+                  {/* Título de Categoría */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
+                    <span className="text-2xl">{category.icon}</span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
+                      {category.name}
+                    </h3>
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-neutral-900 text-center">
-                    <span className="text-[10px] text-neutral-500 font-medium">
-                      ✓ Entrega inmediata y soporte activo
-                    </span>
+                  {/* Grid de Tarjetas de Plataforma */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {catPlatforms.map((platform) => {
+                      const activeProds = (platform.products || []).filter((p) => p.active);
+
+                      return (
+                        <div
+                          key={platform.id}
+                          className="bg-[#121212] border border-neutral-800/90 hover:border-neutral-700 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xl transition-all"
+                        >
+                          <div>
+                            {/* Cabecera Plataforma */}
+                            <div className="flex items-center space-x-3.5 pb-4 border-b border-neutral-800/80">
+                              <div className="w-12 h-12 rounded-xl bg-black border border-neutral-800 p-2 flex items-center justify-center flex-shrink-0">
+                                <img
+                                  src={platform.image_url || 'https://img.icons8.com/color/512/television.png'}
+                                  alt={platform.name}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://img.icons8.com/color/512/television.png';
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <span className="text-[10px] tracking-widest text-amber-400 font-bold uppercase">Streaming</span>
+                                <h4 className="text-xl font-black text-white tracking-wide uppercase leading-tight mt-0.5">
+                                  {platform.name}
+                                </h4>
+                              </div>
+                            </div>
+
+                            {/* MEJORA 3: TARJETAS COMPACTAS Y ELEGANTES */}
+                            <div className="mt-4 space-y-3.5">
+                              {activeProds.length > 0 ? (
+                                activeProds.map((prod) => (
+                                  <div
+                                    key={prod.id}
+                                    className="bg-[#171717] border border-neutral-800 hover:border-neutral-700 rounded-xl p-4 transition flex flex-col justify-between"
+                                  >
+                                    <div>
+                                      {/* Modalidad y Precio Destacado */}
+                                      <div className="flex justify-between items-baseline gap-2 mb-1">
+                                        <span className="font-extrabold text-sm text-white uppercase tracking-wide">
+                                          {prod.service_type}
+                                        </span>
+                                        <span className="text-xl font-black text-amber-400 font-mono flex-shrink-0">
+                                          S/ {Number(prod.price).toFixed(2)}
+                                        </span>
+                                      </div>
+
+                                      {/* Badges de Perfiles y Dispositivos */}
+                                      <div className="flex flex-wrap gap-1.5 my-2">
+                                        {prod.profiles_count > 1 && (
+                                          <span className="text-[11px] bg-neutral-900 border border-neutral-700 text-neutral-300 px-2 py-0.5 rounded font-semibold">
+                                            {prod.profiles_count} perfiles
+                                          </span>
+                                        )}
+                                        <span className="text-[11px] bg-neutral-900 border border-neutral-700 text-neutral-300 px-2 py-0.5 rounded font-semibold">
+                                          {prod.devices_count} {prod.devices_count === 1 ? 'dispositivo' : 'dispositivos'}
+                                        </span>
+                                      </div>
+
+                                      {/* Descripción Corta */}
+                                      <p className="text-xs text-neutral-400 leading-relaxed mb-3">
+                                        {prod.description || 'Acceso completo para disfrutar tu entretenimiento.'}
+                                      </p>
+                                    </div>
+
+                                    {/* MEJORA 4: BOTÓN COMPRAR POR WHATSAPP CON MENSAJE AUTOMÁTICO */}
+                                    <button
+                                      onClick={() => handleBuyWhatsApp(platform.name, prod.service_type, prod.price)}
+                                      className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-400/10 cursor-pointer"
+                                    >
+                                      <span>💬 COMPRAR POR WHATSAPP</span>
+                                    </button>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-neutral-500 italic py-2 text-center">
+                                  Modalidades en actualización.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-neutral-900 text-center">
+                            <span className="text-[10px] text-neutral-500 font-medium">
+                              ✓ Activación rápida y soporte garantizado
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1232,154 +1307,88 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
         )}
       </section>
 
-      {/* MODAL CHECKOUT CON REGISTRO */}
-      {checkoutItem && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#121212] border border-amber-400/50 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setCheckoutItem(null)}
-              className="absolute top-4 right-4 text-neutral-400 hover:text-white text-lg font-bold cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-400 block mb-1">
-              Checkout Inmediato
-            </span>
-            <h3 className="text-lg font-black text-white">{checkoutItem.platformName}</h3>
-            <p className="text-xs text-neutral-300 font-semibold mt-0.5">{checkoutItem.serviceType}</p>
-            <p className="text-3xl font-black text-amber-400 font-mono mt-2">
-              S/ {Number(checkoutItem.price).toFixed(2)}
-            </p>
-
-            <div className="my-4 bg-white p-3 rounded-xl inline-block shadow-md">
-              <img
-                src="https://i.postimg.cc/05f0pV8j/qr-png.jpg"
-                alt="QR Pago Yape / Dale"
-                className="w-40 h-40 object-contain mx-auto"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=51906246375";
-                }}
-              />
-              <span className="text-black font-extrabold text-xs mt-1 block">YAPE / DALE</span>
-            </div>
-
-            <div className="bg-neutral-900 rounded-xl p-3 text-xs text-left border border-neutral-800 space-y-1 mb-4">
-              <p className="text-neutral-400">Número Yape / Dale: <span className="text-amber-300 font-mono font-bold">906 246 375</span></p>
-              <p className="text-neutral-400">Titular: <span className="text-white font-semibold">I-LUXE STORE</span></p>
-            </div>
-
-            <div className="space-y-2 mb-4 text-left">
-              <input
-                type="text"
-                required
-                placeholder="Tu nombre completo *"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
-              />
-              <input
-                type="tel"
-                required
-                placeholder="Número de WhatsApp *"
-                value={clientWhatsapp}
-                onChange={(e) => setClientWhatsapp(e.target.value)}
-                className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
-              />
-              <input
-                type="email"
-                placeholder="Correo (opcional para entrega)"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
-              />
-            </div>
-
-            <button
-              disabled={isSubmittingOrder}
-              onClick={handleFinalizePurchase}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-lg shadow-emerald-950/50 active:scale-95 cursor-pointer disabled:bg-neutral-700"
-            >
-              {isSubmittingOrder ? 'REGISTRANDO...' : '✓ YA TRANSFERÍ · ENTREGAR MI CUENTA'}
-            </button>
-            <p className="text-[10px] text-neutral-500 mt-2">
-              Se registrará tu pedido en el sistema y se abrirá WhatsApp con el comprobante.
-            </p>
-          </div>
+      {/* 5. MEJORA 7: SECCIÓN DE CONFIANZA */}
+      <section className="py-16 px-4 max-w-5xl mx-auto border-t border-neutral-900">
+        <div className="text-center mb-10">
+          <span className="text-[11px] font-extrabold tracking-[0.25em] text-amber-400 uppercase">
+            GARANTÍA Y COMPROMISO
+          </span>
+          <h3 className="text-2xl sm:text-4xl font-black text-white mt-1 uppercase tracking-tight">
+            ¿POR QUÉ ELEGIR I-LUXE STORE?
+          </h3>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-2">
+            La opción más confiable y segura para tus servicios digitales en Perú.
+          </p>
         </div>
-      )}
 
-      {/* 4. BENEFICIOS */}
-      <section className="py-16 px-4 max-w-6xl mx-auto border-t border-neutral-900">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <div className="bg-[#121212] border border-neutral-800 p-6 rounded-2xl">
-            <span className="text-2xl mb-3 block">💬</span>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
-              ATENCIÓN PERSONALIZADA
-            </h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Atención directa por WhatsApp.
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-[#121212] border border-neutral-800 p-5 rounded-2xl flex items-center gap-3.5">
+            <span className="text-2xl">⚡</span>
+            <div>
+              <h4 className="text-sm font-black text-white">Atención rápida</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Respuestas y entregas sin demoras.</p>
+            </div>
           </div>
 
-          <div className="bg-[#121212] border border-neutral-800 p-6 rounded-2xl">
-            <span className="text-2xl mb-3 block">🛡️</span>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
-              SOPORTE
-            </h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Estamos disponibles para ayudarte.
-            </p>
+          <div className="bg-[#121212] border border-neutral-800 p-5 rounded-2xl flex items-center gap-3.5">
+            <span className="text-2xl">💬</span>
+            <div>
+              <h4 className="text-sm font-black text-white">Soporte por WhatsApp</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Asistencia directa en todo momento.</p>
+            </div>
           </div>
 
-          <div className="bg-[#121212] border border-neutral-800 p-6 rounded-2xl">
-            <span className="text-2xl mb-3 block">🇵🇪</span>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
-              ATENCIÓN EN PERÚ
-            </h3>
-            <p className="text-xs text-neutral-400 leading-relaxed">
-              Servicio orientado a clientes en Perú.
-            </p>
+          <div className="bg-[#121212] border border-neutral-800 p-5 rounded-2xl flex items-center gap-3.5">
+            <span className="text-2xl">📺</span>
+            <div>
+              <h4 className="text-sm font-black text-white">Variedad de plataformas</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Tus servicios favoritos en un solo lugar.</p>
+            </div>
+          </div>
+
+          <div className="bg-[#121212] border border-neutral-800 p-5 rounded-2xl flex items-center gap-3.5">
+            <span className="text-2xl">💰</span>
+            <div>
+              <h4 className="text-sm font-black text-white">Precios accesibles</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Tarifas justas y transparentes en Soles.</p>
+            </div>
+          </div>
+
+          <div className="bg-[#121212] border border-neutral-800 p-5 rounded-2xl flex items-center gap-3.5 sm:col-span-2 lg:col-span-2 justify-start">
+            <span className="text-2xl">🤝</span>
+            <div>
+              <h4 className="text-sm font-black text-white">Atención personalizada</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Te asesoramos para elegir la modalidad que mejor se adapte a tus necesidades.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 5. REDES */}
-      {(settings.facebook || settings.instagram || settings.tiktok || settings.telegram) && (
-        <section className="py-12 px-4 max-w-4xl mx-auto text-center border-t border-neutral-900">
-          <h3 className="text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase mb-5">
-            SÍGUENOS EN NUESTRAS REDES
+      {/* 6. MEJORA 8: LLAMADA A LA ACCIÓN FINAL */}
+      <section className="py-14 px-4 max-w-3xl mx-auto text-center border-t border-neutral-900">
+        <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-amber-400/30 rounded-3xl p-8 sm:p-10 shadow-2xl">
+          <span className="text-[10px] tracking-[0.25em] text-amber-400 font-extrabold uppercase block mb-2">
+            ATENCIÓN A MEDIDA
+          </span>
+          <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mb-3">
+            ¿NO ENCUENTRAS EL SERVICIO QUE BUSCAS?
           </h3>
-          <div className="flex flex-wrap justify-center gap-3">
-            {settings.facebook && (
-              <a href={settings.facebook} target="_blank" rel="noreferrer" className="bg-[#121212] border border-neutral-800 hover:border-amber-400 text-neutral-200 px-5 py-2 rounded-xl text-xs font-semibold transition">
-                Facebook
-              </a>
-            )}
-            {settings.instagram && (
-              <a href={settings.instagram} target="_blank" rel="noreferrer" className="bg-[#121212] border border-neutral-800 hover:border-amber-400 text-neutral-200 px-5 py-2 rounded-xl text-xs font-semibold transition">
-                Instagram
-              </a>
-            )}
-            {settings.tiktok && (
-              <a href={settings.tiktok} target="_blank" rel="noreferrer" className="bg-[#121212] border border-neutral-800 hover:border-amber-400 text-neutral-200 px-5 py-2 rounded-xl text-xs font-semibold transition">
-                TikTok
-              </a>
-            )}
-            {settings.telegram && (
-              <a href={settings.telegram} target="_blank" rel="noreferrer" className="bg-[#121212] border border-neutral-800 hover:border-amber-400 text-neutral-200 px-5 py-2 rounded-xl text-xs font-semibold transition">
-                Telegram
-              </a>
-            )}
-          </div>
-        </section>
-      )}
+          <p className="text-xs sm:text-sm text-neutral-400 max-w-lg mx-auto mb-6 leading-relaxed">
+            Escríbenos por WhatsApp y te ayudaremos a conseguir la suscripción o modalidad que necesitas de inmediato.
+          </p>
+          <button
+            onClick={handleCustomInquiryWhatsApp}
+            className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-3.5 rounded-xl text-xs uppercase tracking-wider transition active:scale-95 shadow-lg shadow-emerald-950/50 cursor-pointer"
+          >
+            <span>💬 CONTACTAR POR WHATSAPP</span>
+          </button>
+        </div>
+      </section>
 
-      {/* 6. PAGOS */}
-      <section className="py-12 px-4 max-w-xl mx-auto text-center">
+      {/* 7. MEDIOS DE PAGO */}
+      <section className="py-10 px-4 max-w-xl mx-auto text-center">
         <div className="bg-[#121212] border border-neutral-800 rounded-2xl p-6">
-          <span className="text-[10px] tracking-widest text-amber-400 font-bold uppercase block mb-1">Pagos instantáneos</span>
+          <span className="text-[10px] tracking-widest text-amber-400 font-bold uppercase block mb-1">Pagos rápidos</span>
           <h4 className="text-sm font-bold text-white uppercase tracking-wider">Medios de Pago Aceptados</h4>
           <div className="flex justify-center gap-4 my-4">
             <span className="bg-purple-950/60 border border-purple-800 text-purple-300 px-4 py-1.5 rounded-lg text-xs font-black tracking-wider">
@@ -1390,25 +1399,25 @@ Adjunto mi comprobante de pago para la entrega inmediata de mi acceso. 🚀`;
             </span>
           </div>
           <p className="text-xs text-neutral-400">
-            Número oficial: <span className="text-white font-mono font-bold">906 246 375</span>
+            Número oficial: <span className="text-white font-mono font-bold">{settings.whatsapp || '906246375'}</span>
           </p>
         </div>
       </section>
 
-      {/* 7. FOOTER */}
+      {/* 8. FOOTER */}
       <footer className="bg-black border-t border-neutral-900 py-12 px-4 text-center md:text-left">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <h4 className="text-lg font-black tracking-widest text-white">{settings.business_name}</h4>
             <p className="text-[10px] tracking-[0.2em] text-amber-400 font-bold uppercase mb-2">{settings.subtitle}</p>
             <p className="text-xs text-neutral-400">Tu entretenimiento, nuestra prioridad.</p>
-            <p className="text-xs text-neutral-300 font-mono mt-1">WhatsApp: {settings.whatsapp}</p>
+            <p className="text-xs text-neutral-300 font-mono mt-1">WhatsApp: {settings.whatsapp || '906246375'}</p>
           </div>
 
           <nav className="flex flex-wrap justify-center gap-4 text-xs text-neutral-400">
             <a href="/" className="hover:text-white transition">Inicio</a>
             <a href="#catalogo" className="hover:text-white transition">Catálogo</a>
-            <a href={`https://wa.me/${cleanWhatsapp}`} target="_blank" rel="noreferrer" className="hover:text-white transition">WhatsApp</a>
+            <a href={`https://wa.me/${officialWaNumber}`} target="_blank" rel="noreferrer" className="hover:text-white transition">WhatsApp</a>
             {settings.facebook && <a href={settings.facebook} target="_blank" rel="noreferrer" className="hover:text-white transition">Facebook</a>}
             {settings.instagram && <a href={settings.instagram} target="_blank" rel="noreferrer" className="hover:text-white transition">Instagram</a>}
             {settings.tiktok && <a href={settings.tiktok} target="_blank" rel="noreferrer" className="hover:text-white transition">TikTok</a>}
