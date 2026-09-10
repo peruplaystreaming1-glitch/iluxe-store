@@ -6,7 +6,6 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Definición de Categorías Oficiales
 const CATEGORIES = [
   {
     id: 'streaming-popular',
@@ -51,7 +50,7 @@ export default function App() {
       return [...prevCart, { ...product, quantity: 1 }];
     });
 
-    setToastMessage(`✓ ${product.platform} (${product.service}) agregado`);
+    setToastMessage(`✓ ${product.platform} agregado al carrito`);
     setTimeout(() => setToastMessage(''), 2500);
   };
 
@@ -72,8 +71,8 @@ export default function App() {
   const clearCart = () => setCart([]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-[#d4af37] selection:text-black">
-      {/* HEADER / ENCABEZADO */}
+    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
+      {/* HEADER */}
       <header className="sticky top-0 z-40 bg-[#0f0f0f]/95 backdrop-blur border-b border-[#d4af37]/20 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl">👑</span>
@@ -83,7 +82,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Botón Carrito con Contador */}
         <button 
           onClick={() => setIsCartOpen(true)}
           className="flex items-center gap-2 border border-[#d4af37]/40 px-4 py-2 rounded-full bg-[#141414] hover:bg-[#d4af37]/15 transition-all text-sm font-bold shadow-lg"
@@ -111,7 +109,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* CATÁLOGO DE PLATAFORMAS */}
+      {/* CATÁLOGO */}
       <main className="max-w-6xl mx-auto px-6 py-12 space-y-16">
         {CATEGORIES.map((cat) => (
           <div key={cat.id} className="space-y-6">
@@ -136,7 +134,6 @@ export default function App() {
                       </span>
                     </div>
 
-                    {/* Planes / Modalidades */}
                     <div className="space-y-3 mb-6">
                       <div className="bg-[#181818] p-3.5 rounded-xl border border-neutral-800 flex items-center justify-between">
                         <div>
@@ -192,7 +189,7 @@ export default function App() {
         <p className="mt-1 text-[#d4af37]">Ventas y Activaciones oficiales por WhatsApp: 906246375</p>
       </footer>
 
-      {/* Toast de confirmación elegante */}
+      {/* TOAST */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#141414] border-2 border-[#d4af37] text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <span className="text-[#d4af37] font-bold text-lg">✓</span>
@@ -200,7 +197,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Panel Lateral del Carrito */}
+      {/* DRAWER */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
