@@ -42,9 +42,9 @@ export default function App() {
     business_name: 'I-LUXE STORE',
     subtitle: 'STREAMING PERÚ',
     whatsapp: '906246375',
-    facebook: '',
-    instagram: '',
-    tiktok: '',
+    facebook: 'https://facebook.com',
+    instagram: 'https://instagram.com',
+    tiktok: 'https://tiktok.com',
     telegram: ''
   });
   const [loading, setLoading] = useState(true);
@@ -125,8 +125,20 @@ export default function App() {
     try {
       const { data: setData } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle();
       if (setData) {
-        setSettings(setData);
-        setSettingsForm(setData);
+        setSettings(prev => ({
+          ...prev,
+          ...setData,
+          facebook: setData.facebook || 'https://facebook.com',
+          instagram: setData.instagram || 'https://instagram.com',
+          tiktok: setData.tiktok || 'https://tiktok.com'
+        }));
+        setSettingsForm(prev => ({
+          ...prev,
+          ...setData,
+          facebook: setData.facebook || 'https://facebook.com',
+          instagram: setData.instagram || 'https://instagram.com',
+          tiktok: setData.tiktok || 'https://tiktok.com'
+        }));
       }
 
       const { data: platData } = await supabase
@@ -222,7 +234,7 @@ export default function App() {
     }
   };
 
-  // Botón Comprar por WhatsApp (Formato Exacto Solicitado)
+  // Botón Comprar por WhatsApp (Formato Exacto)
   const handleBuyWhatsApp = (platformName, serviceType, price) => {
     let cleanWa = (settings.whatsapp || '906246375').replace(/[^0-9]/g, '');
     if (!cleanWa.startsWith('51') && cleanWa.length === 9) {
@@ -242,7 +254,6 @@ Quiero más información.`;
     window.open(`https://wa.me/${cleanWa}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  // Botón Consulta General / No encuentras tu servicio
   const handleCustomInquiryWhatsApp = () => {
     let cleanWa = (settings.whatsapp || '906246375').replace(/[^0-9]/g, '');
     if (!cleanWa.startsWith('51') && cleanWa.length === 9) {
@@ -380,7 +391,6 @@ Quiero más información.`;
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  // Plataformas y Productos activos
   const allProducts = platforms.flatMap((p) => p.products || []);
   const activeProducts = allProducts.filter((p) => p.active);
   const activePlatforms = platforms.filter((p) => p.active);
@@ -389,6 +399,12 @@ Quiero más información.`;
   if (!officialWaNumber.startsWith('51') && officialWaNumber.length === 9) {
     officialWaNumber = '51' + officialWaNumber;
   }
+
+  // URLs de redes con valores por defecto
+  const fbUrl = settings.facebook || 'https://facebook.com';
+  const igUrl = settings.instagram || 'https://instagram.com';
+  const ttUrl = settings.tiktok || 'https://tiktok.com';
+  const waUrl = `https://wa.me/${officialWaNumber}?text=${encodeURIComponent('Hola I-LUXE STORE 👋 Deseo realizar una consulta sobre el catálogo de streaming.')}`;
 
   // ==========================================
   // VISTA 1: PANEL ADMINISTRATIVO PRIVADO (/admin)
@@ -959,13 +975,13 @@ Quiero más información.`;
           {adminTab === 'settings' && (
             <div className="space-y-6 max-w-xl">
               <div>
-                <h1 className="text-2xl font-black text-white">CONFIGURACIÓN GENERAL</h1>
-                <p className="text-xs text-neutral-400 mt-1">Modifica el WhatsApp oficial y redes sociales.</p>
+                <h1 className="text-2xl font-black text-white">CONFIGURACIÓN GENERAL & REDES SOCIALES</h1>
+                <p className="text-xs text-neutral-400 mt-1">Coloca y modifica los enlaces de tus redes sociales y WhatsApp oficial.</p>
               </div>
 
               {saveSuccess && (
                 <div className="bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs p-3 rounded-xl">
-                  ✓ Configuración actualizada en la página web.
+                  ✓ Configuración y enlaces de redes sociales actualizados en la página web.
                 </div>
               )}
 
@@ -1005,45 +1021,49 @@ Quiero más información.`;
                 </div>
 
                 <div className="pt-3 border-t border-neutral-800 space-y-3">
-                  <span className="block text-[11px] font-bold text-amber-400 uppercase">Redes Sociales</span>
+                  <span className="block text-[11px] font-bold text-amber-400 uppercase">Enlaces de Redes Sociales</span>
+                  
                   <div>
-                    <label className="block text-[10px] text-neutral-400 mb-1">Facebook URL</label>
+                    <label className="block text-[10px] text-neutral-400 mb-1">📘 URL de Facebook</label>
                     <input
                       type="text"
-                      placeholder="https://facebook.com/..."
+                      placeholder="https://facebook.com/tu-pagina"
                       value={settingsForm.facebook}
                       onChange={(e) => setSettingsForm({ ...settingsForm, facebook: e.target.value })}
-                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[10px] text-neutral-400 mb-1">Instagram URL</label>
+                    <label className="block text-[10px] text-neutral-400 mb-1">📸 URL de Instagram</label>
                     <input
                       type="text"
-                      placeholder="https://instagram.com/..."
+                      placeholder="https://instagram.com/tu-perfil"
                       value={settingsForm.instagram}
                       onChange={(e) => setSettingsForm({ ...settingsForm, instagram: e.target.value })}
-                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[10px] text-neutral-400 mb-1">TikTok URL</label>
+                    <label className="block text-[10px] text-neutral-400 mb-1">🎵 URL de TikTok</label>
                     <input
                       type="text"
-                      placeholder="https://tiktok.com/@..."
+                      placeholder="https://tiktok.com/@tu-cuenta"
                       value={settingsForm.tiktok}
                       onChange={(e) => setSettingsForm({ ...settingsForm, tiktok: e.target.value })}
-                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-[10px] text-neutral-400 mb-1">Telegram URL</label>
+                    <label className="block text-[10px] text-neutral-400 mb-1">✈️ URL de Telegram (Opcional)</label>
                     <input
                       type="text"
-                      placeholder="https://t.me/..."
+                      placeholder="https://t.me/tu-canal"
                       value={settingsForm.telegram}
                       onChange={(e) => setSettingsForm({ ...settingsForm, telegram: e.target.value })}
-                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
+                      className="w-full bg-black border border-neutral-800 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white outline-none"
                     />
                   </div>
                 </div>
@@ -1052,7 +1072,7 @@ Quiero más información.`;
                   type="submit"
                   className="w-full bg-amber-400 hover:bg-amber-300 text-black font-extrabold py-2.5 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer"
                 >
-                  GUARDAR CAMBIOS
+                  GUARDAR AJUSTES
                 </button>
               </form>
             </div>
@@ -1063,7 +1083,7 @@ Quiero más información.`;
   }
 
   // ==========================================
-  // VISTA 2: PÁGINA PÚBLICA RENOVADA
+  // VISTA 2: PÁGINA PÚBLICA (I-LUXE STORE)
   // ==========================================
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-neutral-100 font-sans selection:bg-amber-400 selection:text-black">
@@ -1088,7 +1108,7 @@ Quiero más información.`;
             </a>
 
             <a
-              href={`https://wa.me/${officialWaNumber}`}
+              href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-4 py-2 rounded-xl text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 transition active:scale-95"
@@ -1137,7 +1157,7 @@ Quiero más información.`;
         </div>
       </section>
 
-      {/* 3. MEJORA 1: ENCABEZADO DEL CATÁLOGO */}
+      {/* 3. ENCABEZADO DEL CATÁLOGO */}
       <section id="catalogo" className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-8">
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-[11px] font-extrabold tracking-[0.25em] text-amber-400 uppercase bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
@@ -1151,7 +1171,7 @@ Quiero más información.`;
           </p>
         </div>
 
-        {/* MEJORA 2: FILTRO RÁPIDO DE CATEGORÍAS */}
+        {/* FILTRO DE CATEGORÍAS */}
         <div className="flex flex-wrap items-center justify-center gap-2 mt-8 mb-12">
           <button
             onClick={() => setSelectedCategory('all')}
@@ -1179,7 +1199,7 @@ Quiero más información.`;
           ))}
         </div>
 
-        {/* 4. CARGA O LISTADO DE PRODUCTOS POR CATEGORÍA */}
+        {/* LISTADO DE PRODUCTOS POR CATEGORÍA */}
         {loading ? (
           <div className="text-center py-20 text-neutral-500 text-sm">
             <p className="animate-pulse">Cargando catálogo oficial...</p>
@@ -1191,13 +1211,11 @@ Quiero más información.`;
         ) : (
           <div className="space-y-16">
             {CATEGORIES.filter(cat => selectedCategory === 'all' || selectedCategory === cat.id).map((category) => {
-              // Obtener plataformas pertenecientes a esta categoría
               const catPlatforms = activePlatforms.filter(p => category.platforms.includes(p.name));
               if (catPlatforms.length === 0) return null;
 
               return (
                 <div key={category.id} className="space-y-6">
-                  {/* Título de Categoría */}
                   <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
                     <span className="text-2xl">{category.icon}</span>
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase">
@@ -1205,7 +1223,6 @@ Quiero más información.`;
                     </h3>
                   </div>
 
-                  {/* Grid de Tarjetas de Plataforma */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {catPlatforms.map((platform) => {
                       const activeProds = (platform.products || []).filter((p) => p.active);
@@ -1216,7 +1233,6 @@ Quiero más información.`;
                           className="bg-[#121212] border border-neutral-800/90 hover:border-neutral-700 rounded-2xl p-5 sm:p-6 flex flex-col justify-between shadow-xl transition-all"
                         >
                           <div>
-                            {/* Cabecera Plataforma */}
                             <div className="flex items-center space-x-3.5 pb-4 border-b border-neutral-800/80">
                               <div className="w-12 h-12 rounded-xl bg-black border border-neutral-800 p-2 flex items-center justify-center flex-shrink-0">
                                 <img
@@ -1237,7 +1253,6 @@ Quiero más información.`;
                               </div>
                             </div>
 
-                            {/* MEJORA 3: TARJETAS COMPACTAS Y ELEGANTES */}
                             <div className="mt-4 space-y-3.5">
                               {activeProds.length > 0 ? (
                                 activeProds.map((prod) => (
@@ -1246,7 +1261,6 @@ Quiero más información.`;
                                     className="bg-[#171717] border border-neutral-800 hover:border-neutral-700 rounded-xl p-4 transition flex flex-col justify-between"
                                   >
                                     <div>
-                                      {/* Modalidad y Precio Destacado */}
                                       <div className="flex justify-between items-baseline gap-2 mb-1">
                                         <span className="font-extrabold text-sm text-white uppercase tracking-wide">
                                           {prod.service_type}
@@ -1256,7 +1270,6 @@ Quiero más información.`;
                                         </span>
                                       </div>
 
-                                      {/* Badges de Perfiles y Dispositivos */}
                                       <div className="flex flex-wrap gap-1.5 my-2">
                                         {prod.profiles_count > 1 && (
                                           <span className="text-[11px] bg-neutral-900 border border-neutral-700 text-neutral-300 px-2 py-0.5 rounded font-semibold">
@@ -1268,13 +1281,11 @@ Quiero más información.`;
                                         </span>
                                       </div>
 
-                                      {/* Descripción Corta */}
                                       <p className="text-xs text-neutral-400 leading-relaxed mb-3">
                                         {prod.description || 'Acceso completo para disfrutar tu entretenimiento.'}
                                       </p>
                                     </div>
 
-                                    {/* MEJORA 4: BOTÓN COMPRAR POR WHATSAPP CON MENSAJE AUTOMÁTICO */}
                                     <button
                                       onClick={() => handleBuyWhatsApp(platform.name, prod.service_type, prod.price)}
                                       className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md shadow-amber-400/10 cursor-pointer"
@@ -1307,7 +1318,7 @@ Quiero más información.`;
         )}
       </section>
 
-      {/* 5. MEJORA 7: SECCIÓN DE CONFIANZA */}
+      {/* 4. SECCIÓN DE CONFIANZA */}
       <section className="py-16 px-4 max-w-5xl mx-auto border-t border-neutral-900">
         <div className="text-center mb-10">
           <span className="text-[11px] font-extrabold tracking-[0.25em] text-amber-400 uppercase">
@@ -1364,7 +1375,109 @@ Quiero más información.`;
         </div>
       </section>
 
-      {/* 6. MEJORA 8: LLAMADA A LA ACCIÓN FINAL */}
+      {/* 5. NUEVA SECCIÓN OFICIAL: SÍGUENOS EN NUESTRAS REDES */}
+      <section className="py-16 px-4 max-w-5xl mx-auto border-t border-neutral-900">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <span className="text-[11px] font-extrabold tracking-[0.25em] text-amber-400 uppercase bg-amber-400/10 border border-amber-400/20 px-3 py-1 rounded-full">
+            COMUNIDAD & ATENCIÓN
+          </span>
+          <h3 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight mt-3">
+            SÍGUENOS EN NUESTRAS REDES
+          </h3>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-3 leading-relaxed">
+            Mantente conectado con I-LUXE STORE y descubre novedades, promociones, nuevos servicios y contenido exclusivo.
+          </p>
+        </div>
+
+        {/* BOTONES E ICONOS GRANDES, MODERNOS Y PROFESIONALES */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* FACEBOOK */}
+          <a
+            href={fbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-[#121212] hover:bg-[#181818] border border-neutral-800 hover:border-blue-500/60 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 shadow-xl hover:-translate-y-1"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/30 group-hover:border-blue-500 flex items-center justify-center text-blue-500 mb-4 transition-colors">
+              <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+            </div>
+            <span className="text-base font-black text-white tracking-wide group-hover:text-blue-400 transition-colors">
+              FACEBOOK
+            </span>
+            <span className="text-[11px] text-neutral-500 mt-1">@iluxestore</span>
+            <span className="mt-4 text-[11px] font-bold text-neutral-300 group-hover:text-white flex items-center gap-1">
+              Seguir página →
+            </span>
+          </a>
+
+          {/* INSTAGRAM */}
+          <a
+            href={igUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-[#121212] hover:bg-[#181818] border border-neutral-800 hover:border-pink-500/60 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 shadow-xl hover:-translate-y-1"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-pink-600/10 border border-pink-500/30 group-hover:border-pink-500 flex items-center justify-center text-pink-500 mb-4 transition-colors">
+              <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+            </div>
+            <span className="text-base font-black text-white tracking-wide group-hover:text-pink-400 transition-colors">
+              INSTAGRAM
+            </span>
+            <span className="text-[11px] text-neutral-500 mt-1">@iluxestore</span>
+            <span className="mt-4 text-[11px] font-bold text-neutral-300 group-hover:text-white flex items-center gap-1">
+              Ver perfil →
+            </span>
+          </a>
+
+          {/* TIKTOK */}
+          <a
+            href={ttUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-[#121212] hover:bg-[#181818] border border-neutral-800 hover:border-amber-400/60 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 shadow-xl hover:-translate-y-1"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-neutral-900 border border-neutral-700 group-hover:border-amber-400 flex items-center justify-center text-white mb-4 transition-colors">
+              <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+              </svg>
+            </div>
+            <span className="text-base font-black text-white tracking-wide group-hover:text-amber-400 transition-colors">
+              TIKTOK
+            </span>
+            <span className="text-[11px] text-neutral-500 mt-1">@iluxestore</span>
+            <span className="mt-4 text-[11px] font-bold text-neutral-300 group-hover:text-white flex items-center gap-1">
+              Ver videos →
+            </span>
+          </a>
+
+          {/* WHATSAPP */}
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-[#121212] hover:bg-[#181818] border border-neutral-800 hover:border-emerald-500/60 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 shadow-xl hover:-translate-y-1"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-emerald-600/10 border border-emerald-500/30 group-hover:border-emerald-500 flex items-center justify-center text-emerald-400 mb-4 transition-colors">
+              <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+              </svg>
+            </div>
+            <span className="text-base font-black text-white tracking-wide group-hover:text-emerald-400 transition-colors">
+              WHATSAPP
+            </span>
+            <span className="text-[11px] text-neutral-500 mt-1">906 246 375</span>
+            <span className="mt-4 text-[11px] font-bold text-neutral-300 group-hover:text-white flex items-center gap-1">
+              Enviar mensaje →
+            </span>
+          </a>
+        </div>
+      </section>
+
+      {/* 6. LLAMADA A LA ACCIÓN FINAL */}
       <section className="py-14 px-4 max-w-3xl mx-auto text-center border-t border-neutral-900">
         <div className="bg-gradient-to-b from-[#141414] to-[#0d0d0d] border border-amber-400/30 rounded-3xl p-8 sm:p-10 shadow-2xl">
           <span className="text-[10px] tracking-[0.25em] text-amber-400 font-extrabold uppercase block mb-2">
@@ -1404,29 +1517,70 @@ Quiero más información.`;
         </div>
       </section>
 
-      {/* 8. FOOTER */}
-      <footer className="bg-black border-t border-neutral-900 py-12 px-4 text-center md:text-left">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* 8. FOOTER PROFESIONAL RENOVADO */}
+      <footer className="bg-black border-t border-neutral-900 py-14 px-4 text-center md:text-left">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
-            <h4 className="text-lg font-black tracking-widest text-white">{settings.business_name}</h4>
-            <p className="text-[10px] tracking-[0.2em] text-amber-400 font-bold uppercase mb-2">{settings.subtitle}</p>
-            <p className="text-xs text-neutral-400">Tu entretenimiento, nuestra prioridad.</p>
-            <p className="text-xs text-neutral-300 font-mono mt-1">WhatsApp: {settings.whatsapp || '906246375'}</p>
+            <h4 className="text-2xl font-black tracking-widest text-white">
+              {settings.business_name}
+            </h4>
+            <p className="text-[10px] tracking-[0.25em] text-amber-400 font-bold uppercase mt-0.5">
+              {settings.subtitle}
+            </p>
+            <p className="text-xs text-neutral-400 mt-2 font-medium">
+              Tu entretenimiento favorito en un solo lugar.
+            </p>
+            <p className="text-xs text-neutral-300 font-mono mt-1">
+              WhatsApp: <span className="text-amber-400 font-bold">{settings.whatsapp || '906246375'}</span>
+            </p>
           </div>
 
-          <nav className="flex flex-wrap justify-center gap-4 text-xs text-neutral-400">
-            <a href="/" className="hover:text-white transition">Inicio</a>
-            <a href="#catalogo" className="hover:text-white transition">Catálogo</a>
-            <a href={`https://wa.me/${officialWaNumber}`} target="_blank" rel="noreferrer" className="hover:text-white transition">WhatsApp</a>
-            {settings.facebook && <a href={settings.facebook} target="_blank" rel="noreferrer" className="hover:text-white transition">Facebook</a>}
-            {settings.instagram && <a href={settings.instagram} target="_blank" rel="noreferrer" className="hover:text-white transition">Instagram</a>}
-            {settings.tiktok && <a href={settings.tiktok} target="_blank" rel="noreferrer" className="hover:text-white transition">TikTok</a>}
-            {settings.telegram && <a href={settings.telegram} target="_blank" rel="noreferrer" className="hover:text-white transition">Telegram</a>}
-          </nav>
+          {/* Enlaces de Redes Sociales en el Footer */}
+          <div className="flex flex-col items-center md:items-end gap-3">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-500">
+              CONÉCTATE CON NOSOTROS
+            </span>
+            <div className="flex flex-wrap justify-center gap-3">
+              <a
+                href={fbUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#121212] hover:bg-neutral-800 border border-neutral-800 hover:border-amber-400 text-neutral-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition"
+              >
+                Facebook
+              </a>
+              <a
+                href={igUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#121212] hover:bg-neutral-800 border border-neutral-800 hover:border-amber-400 text-neutral-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition"
+              >
+                Instagram
+              </a>
+              <a
+                href={ttUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#121212] hover:bg-neutral-800 border border-neutral-800 hover:border-amber-400 text-neutral-300 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition"
+              >
+                TikTok
+              </a>
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800 text-emerald-400 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition"
+              >
+                WhatsApp
+              </a>
+            </div>
+          </div>
         </div>
 
-        <div className="max-w-6xl mx-auto mt-8 pt-6 border-t border-neutral-950 text-center text-[11px] text-neutral-600">
-          © {new Date().getFullYear()} {settings.business_name}. Todos los derechos reservados.
+        {/* COPYRIGHT OFICIAL 2026 */}
+        <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-neutral-900 flex flex-col sm:flex-row items-center justify-between text-[11px] text-neutral-600 gap-2">
+          <span>© 2026 I-LUXE STORE · Streaming Perú</span>
+          <span className="text-neutral-500 font-medium">Todos los derechos reservados.</span>
         </div>
       </footer>
     </div>
