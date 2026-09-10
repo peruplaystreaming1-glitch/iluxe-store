@@ -1,1 +1,2 @@
-# iluxe-store
+# I-Store Luxe
+Deploy trigger for Vercel.
